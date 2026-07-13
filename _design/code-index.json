@@ -1,0 +1,59 @@
+{
+  "version": "1.1",
+  "generated": "2026-07-13T00:00:00+00:00",
+  "root": "open-source-research-agent2",
+  "zone_mapping": [
+    {
+      "prefix": "research-agent2",
+      "zone": "pipeline"
+    },
+    {
+      "prefix": "notebooklm",
+      "zone": "pipeline"
+    },
+    {
+      "prefix": "observer",
+      "zone": "observability"
+    },
+    {
+      "prefix": "quality-gates",
+      "zone": "observability"
+    },
+    {
+      "prefix": "_design",
+      "zone": "_design"
+    }
+  ],
+  "stats": {
+    "files": 6,
+    "total_lines": 1278,
+    "internal_edges": 0
+  },
+  "modules": {
+    "observer/witness.py": {
+      "loc": 327,
+      "zone": "observability"
+    },
+    "observer/hooks/witness-gate.py": {
+      "loc": 183,
+      "zone": "observability"
+    },
+    "observer/hooks/witness-reinject.py": {
+      "loc": 125,
+      "zone": "observability"
+    },
+    "observer/hooks/completeness-gate.py": {
+      "loc": 189,
+      "zone": "observability"
+    },
+    "quality-gates/source-audit.py": {
+      "loc": 351,
+      "zone": "observability"
+    },
+    "quality-gates/persona-guard.py": {
+      "loc": 103,
+      "zone": "observability"
+    }
+  },
+  "notes": "stdlib-only; no internal import edges; coupling via shared JSON state (witness-state, gotchas.json, critical-core.json)."
+}

@@ -1,0 +1,141 @@
+{
+  "version": "1.0",
+  "description": "The non-negotiable core of the research-agent methodology. Single source of truth. Consumed three ways: inlined in the stub (entry), re-injected by witness-reinject.py after every notebooklm ask (during), and used as the witness rubric (after). Editing a rule here changes all three. Rules are the disciplines that, when skipped, silently compromise a research corpus.",
+  "config": {
+    "min_tier_1_3": 15,
+    "max_asks_without_witness": 8,
+    "witness_required_at": "every phase boundary AND whenever asks_since_last_witness reaches max_asks_without_witness",
+    "no_minimum": "There is NO minimum question count and no target. Minimums (DA-minimum rounds, the 5-round ladder, phase-transition criteria) are floors, never goals. The only end-state is demonstrated mastery of the corpus. Never converge early to hit a soft deadline; a user check-in is pause-and-report, not a signal to wrap up.",
+    "saturation_bar": ["distinct axis", "multi-source", "taxonomy/conclusion-changing"],
+    "cadence_checkpoint_is_not_saturation": "Pausing at the max_asks witness cadence is NOT the same as reaching saturation. Never conflate a protocol checkpoint with 'done'.",
+    "termination_requires": "An adversarial completeness critic must certify saturation (zero remaining veins that clear the saturation_bar) AND spec-coverage of every deliverable part, recorded via `witness.py completeness --result CLEAN`, before the findings deliverable may be written."
+  },
+  "rules": [
+    {
+      "id": "methodology-loaded",
+      "phase": "0",
+      "severity": "blocker",
+      "text": "The full methodology (methodology/SKILL.md + the appendices it references) must be actually read this session, not skimmed from the stub. The stub summary is NOT a substitute.",
+      "verify": "Confirm the session read the full SKILL.md and relevant appendices before Phase 1. The witness-gate blocks all Q&A until `witness.py loaded` is recorded."
+    },
+    {
+      "id": "scope-recorded",
+      "phase": "0",
+      "severity": "blocker",
+      "text": "A one-sentence central research question and an output mode are recorded BEFORE any NotebookLM work.",
+      "verify": "central_question and output_mode present in witness-state / notebook-index."
+    },
+    {
+      "id": "persona-set",
+      "phase": "1",
+      "severity": "blocker",
+      "text": "The research-corpus-analyst persona is configured on the notebook (configure --persona) BEFORE any Q&A. Never run configure without --persona (it silently resets to DEFAULT and poisons every answer).",
+      "verify": "persona_set true. No configure --mode/--response-length without --persona in the transcript."
+    },
+    {
+      "id": "corpus-gate",
+      "phase": "2",
+      "severity": "blocker",
+      "text": "Source audit ran, hard-rejects deleted, and at least 15 RECOGNIZED Tier 1-3 sources are present before Q&A begins. Unclassified/unknown-domain sources do NOT count. For evaluation tasks, the subject document does not count.",
+      "verify": "source_audit.completed true, hard_rejects_deleted == hard_rejects_found, effective_tier_1_3 >= 15."
+    },
+    {
+      "id": "no-context-in-exploration",
+      "phase": "3A",
+      "severity": "major",
+      "text": "Phase 3A (exploratory) questions carry NO application/architecture/project framing. Explore the technology on its own terms first. Domain framing only begins in 3B.",
+      "verify": "3A questions in the transcript contain no project/architecture references."
+    },
+    {
+      "id": "bidirectional-eval",
+      "phase": "3",
+      "severity": "major",
+      "text": "After EVERY NotebookLM response, before the next question: run the 5 checks (sufficiency, source-grounding, thin-spot, contradiction, phase-fit). The next question addresses a failed check, not the next item on a mental list.",
+      "verify": "Question progression shows responsiveness to prior answers, not a pre-scripted list. Checkpoints record which checks were run."
+    },
+    {
+      "id": "save-every-note",
+      "phase": "3",
+      "severity": "major",
+      "text": "Every Q&A is saved with --save-as-note. Terminal output is not the evidence trail; the notes are.",
+      "verify": "notebooklm ask calls include --save-as-note; note count roughly matches question count."
+    },
+    {
+      "id": "falsification",
+      "phase": "3B",
+      "severity": "blocker",
+      "text": "Alexander's Question is applied to the central claim: state explicitly what evidence would DISPROVE it, and confirm that evidence is absent from the corpus. A finding that was never subjected to disconfirmation is not a finding.",
+      "verify": "A falsification probe exists for the central claim, with the disproving-evidence condition named and checked."
+    },
+    {
+      "id": "competing-hypotheses",
+      "phase": "3",
+      "severity": "major",
+      "text": "Generate and test competing hypotheses (ACH / devil's advocate) before committing to the lead conclusion. Do not accept the first plausible answer without evaluating alternatives.",
+      "verify": "At least the primary conclusion has documented alternatives that were considered and why they were rejected."
+    },
+    {
+      "id": "no-single-source-anchor",
+      "phase": "4",
+      "severity": "blocker",
+      "text": "No conclusion is anchored to a single source regardless of tier. Cross-source triangulation is required for every major claim.",
+      "verify": "Each major claim in the findings cites >= 2 independent sources; single-source claims are flagged as such."
+    },
+    {
+      "id": "gaps-surfaced",
+      "phase": "5",
+      "severity": "major",
+      "text": "The findings document includes an honest intelligence-gaps section. Omitting gaps because they are uncomfortable is a disqualifying failure.",
+      "verify": "Intelligence-gaps section present and substantive, not boilerplate."
+    },
+    {
+      "id": "no-fabrication",
+      "phase": "5",
+      "severity": "blocker",
+      "text": "Every factual claim in the findings traces to a specific corpus source. Findings (what sources state) and inference (what the analyst concludes) are labeled distinctly. Nothing is filled in from general knowledge.",
+      "verify": "Claims are citation-traced; findings vs inference are visually distinguished; no uncited assertions of fact."
+    },
+    {
+      "id": "linchpin-triangulation",
+      "phase": "3",
+      "severity": "blocker",
+      "text": "Any single-source finding that is load-bearing (would change the conclusion or the taxonomy) must be triangulated with additional sources OR explicitly confidence-capped DURING Phase 3 — not deferred to a Phase 4/5 flag. A load-bearing conclusion resting on one source that was never chased is a deviation.",
+      "verify": "For each load-bearing finding: either >=2 independent sources, or an in-phase triangulation attempt plus an explicit confidence cap. Deferring to a phase-5 note does not satisfy this."
+    },
+    {
+      "id": "fan-out",
+      "phase": "3",
+      "severity": "major",
+      "text": "Every response that surfaces a thin-spot, a new entity, an unexplored sub-topic, or a single-source linchpin must spawn follow-up questions. Do not run a pre-scripted list; fan out from what each answer reveals. A surfaced-but-unfollowed lead is a logged deviation.",
+      "verify": "Question progression shows follow-ups traceable to prior answers' thin-spots, not a fixed list. No obvious surfaced lead left unchased without a recorded reason."
+    },
+    {
+      "id": "phase-exit-depth",
+      "phase": "3",
+      "severity": "major",
+      "text": "A phase may not be exited on floor depth. At each phase boundary the witness runs a territory-coverage audit: it probes the corpus for the FULL set of distinct high-value threads the phase's question implies, then measures how many the actor actually explored. Sampling a few threads and moving on while the corpus supports many more is under-exploration and reopens the phase. Compliance (did the required steps run) is NOT depth; a phase minimum is a floor, never a reason to advance.",
+      "verify": "Witness territory-audit shows the actor explored the phase's corpus-supported threads, not a sample. under_explored=false in the phase witness verdict. Hitting the phase minimum is not evidence of coverage."
+    },
+    {
+      "id": "spec-coverage",
+      "phase": "termination",
+      "severity": "blocker",
+      "text": "Decompose the central question / deliverable into its required parts and verify EACH part is saturated before termination. A compound question ('how is X detected AND what competency taxonomy does that imply') can be half-answered while looking exhaustive. Do not certify done on the strength of one part.",
+      "verify": "The deliverable spec is decomposed into named parts; each has evidence of independent saturation. No part carried by keyword-adjacency to another."
+    },
+    {
+      "id": "exhaustion",
+      "phase": "termination",
+      "severity": "blocker",
+      "text": "Termination requires an adversarial completeness critic to certify saturation: zero remaining veins that clear the saturation_bar (distinct axis / multi-source / taxonomy- or conclusion-changing). There is no minimum and no count target; the only end-state is demonstrated mastery. Pausing at the witness cadence is NOT saturation. The completeness pass is hybrid: a cold subagent audits spec-coverage and open leads from the record; the actor runs the deep vein critique with full context. CRITICAL: the FINAL certifying pass must be a FRESH INDEPENDENT critic with no session context (the actor's self-view and the in-loop critic both share the session's blind spots and will declare CLEAN too early). Record the clean pass via `witness.py completeness --result CLEAN` before writing the deliverable.",
+      "verify": "A completeness_certified=true record exists in witness-state, backed by a FINAL pass from a fresh independent critic (not the actor's self-assessment) that returned zero bar-clearing veins and confirmed every deliverable part saturated. Self-declared termination, or certification by the same context that did the research, is a FAIL."
+    },
+    {
+      "id": "conclusion-dependencies",
+      "phase": "termination",
+      "severity": "blocker",
+      "text": "Before certifying, adversarially attack the surviving conclusion's OWN load-bearing dependencies. Whatever the conclusion leans on (a fallback, a backstop, a mitigating assumption, an 'except in bounded form' escape hatch) must be tested against the corpus: does that dependency actually hold? Every steelman or piece of evidence must be tested in BOTH directions — using a source only to support a side while ignoring that it undercuts your own conclusion (one-directional evidence use) is a deviation. A conclusion that survives only because its own backstop was never interrogated is not saturated.",
+      "verify": "The surviving conclusion's dependencies are explicitly stress-tested against the corpus; no evidence is cited one-directionally; any dependency the corpus contradicts is surfaced and the conclusion revised or caveated accordingly."
+    }
+  ]
+}
