@@ -1,7 +1,7 @@
 # OPEN-SOURCE-RESEARCH-AGENT-2-REFERENCE
 
 **Status:** Active (public distribution)
-**Last Major Update:** 2026-07-13
+**Last Major Update:** 2026-09-23
 **Harness Version:** n/a — this is a public skills repo; harness conventions apply on the private development side only
 
 ---
@@ -110,6 +110,32 @@ None yet. `_design/adrs/` reserved for architectural decisions about the public 
 ---
 
 ## 9. Migration Notes
+
+### 2026-09-23 — Rebrand + notebooklm-py 0.8.2 sync
+
+Brought the vendored `notebooklm/SKILL.md` and the `NOTEBOOKLM-INTEGRATION.md`
+appendix current with upstream notebooklm-py through **v0.8.2**:
+
+- **Rebrand.** NotebookLM is now **Gemini Notebook** (Google, July 2026); same
+  product and service, package keeps the `notebooklm-py` name. Added a rebrand
+  callout to the corpus skill and the discovery description.
+- **Host change.** As of 0.8.1 the default host moved from
+  `notebooklm.google.com` to `notebook.google.com` (old host still resolves).
+  Documented the version floor (`0.8.1+`) that fixes intermittent connection
+  failures on the retired host.
+- **New commands** documented where relevant to research: `source search`
+  (ranked passage search — woven into the integration appendix as a
+  triangulation/linchpin verification aid), `research discover`, `collection`
+  group, `copy`, and research/chat cancellation.
+- **Auth + storage.** Preferred `auth check --test --json` (`.status == "ok"`);
+  noted the automatic migration to `~/.notebooklm/profiles/default/` and the
+  `AuthTokens` → `from_storage()` deprecation.
+- **Deep-research waits** now default to 1,800s upstream, which mitigates the
+  documented import-duplication retry loop; explicit `--timeout` guidance kept.
+
+Backend decision: stays on the **Web (cookie) backend**. The 0.8.2 Android
+backend is noted as a future option, not adopted here (untested in this repo).
+No version pin changed — install remains latest-tag/PyPI.
 
 ### 2026-07-13 — Initial public export
 

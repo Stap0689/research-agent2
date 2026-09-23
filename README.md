@@ -78,7 +78,7 @@ quality-gates/            Source-quality enforcement (shared with v1)
 ## Prerequisites
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (the witness subagent uses the Agent/Task tool; the gates use hooks)
-- [notebooklm-py](https://github.com/teng-lin/notebooklm-py): `pip install notebooklm-py`
+- [notebooklm-py](https://github.com/teng-lin/notebooklm-py) **0.8.1+**: `pip install notebooklm-py` (NotebookLM is now [Gemini Notebook](https://blog.google/innovation-and-ai/products/gemini-notebook/notebooklm-gemini-notebook/); 0.8.1+ points at the current `notebook.google.com` host)
 - NotebookLM authenticated: `notebooklm login`
 - Python 3.10+
 

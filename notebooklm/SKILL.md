@@ -1,11 +1,13 @@
 ---
 name: notebooklm
-description: Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, add sources, generate all artifact types, download in multiple formats. Activates on explicit /notebooklm or intent like "create a podcast about X"
+description: Complete API for Google Gemini Notebook (formerly NotebookLM) - full programmatic access including features not in the web UI. Create notebooks, add sources, generate all artifact types, download in multiple formats. Activates on explicit /notebooklm or intent like "create a podcast about X"
 ---
 
 # NotebookLM Automation
 
 Complete programmatic access to Google NotebookLM—including capabilities not exposed in the web UI. Create notebooks, add sources (URLs, YouTube, PDFs, audio, video, images), chat with content, generate all artifact types, and download results in multiple formats.
+
+> **Rebrand (July 2026): NotebookLM is now [Gemini Notebook](https://blog.google/innovation-and-ai/products/gemini-notebook/notebooklm-gemini-notebook/).** It is the same standalone product (now also reachable inside the Gemini app), existing links redirect automatically, and this library drives the same underlying service. The package keeps the `notebooklm-py` name and the `notebooklm` CLI. As of notebooklm-py **0.8.1** the default host moved from `https://notebooklm.google.com` to `https://notebook.google.com`; the old host still resolves for existing setups. If automation was "patchy," confirm you are on **0.8.1+** (`notebooklm --version`) so requests hit the current host.
 
 ## Installation
 
@@ -33,6 +35,26 @@ pip install "git+https://github.com/teng-lin/notebooklm-py@${LATEST_TAG}"
 ```bash
 notebooklm skill install
 ```
+
+## New in 0.8.1–0.8.2
+
+Capabilities added since the 0.8.0 baseline that matter for research workflows:
+
+| Command | What it does |
+|---------|--------------|
+| `notebooklm source search "<query>" [--limit N] [-s <id>]` | Ranked passage search across the notebook's indexed sources. Returns `source_id`, `text`, `rank`, and source-relative span. Use it to confirm a claim actually appears in a named source (triangulation / linchpin verification) without a full chat turn. |
+| `notebooklm research discover "<query>" [--mode default\|raw\|curious\|curious_raw]` | Single-call "Discover sources": returns ranked sources plus an overview immediately, and preserves a task ID for later import. |
+| `notebooklm collection <list\|create\|add\|remove\|rename\|delete>` | Account-level buckets that group whole notebooks (playlist-style). Sibling of `label`, which groups sources *within* a notebook. |
+| `notebooklm copy "<title>" [-n <id>] [--use --json]` | Copy a notebook including its sources and Studio artifacts. |
+| `notebooklm research cancel <run_id>` / chat `session_status` / `cancel` | Inspect and stop long-running research and chat generations. |
+
+**Auth check (0.8.x):** prefer `notebooklm auth check --test --json` and require `.status == "ok"` and `.checks.token_fetch == true`. Add `--passive` when the check must be strictly read-only.
+
+**Storage layout:** the pre-profiles home-root layout auto-migrates to `~/.notebooklm/profiles/default/` on first run. Direct `AuthTokens` storage loading is deprecated in favor of `NotebookLMClient.from_storage()` (both removed in v1.0).
+
+**Deep-research waits:** the CLI wait default is now 1,800s (was 300s), which also reduces the import-duplication retry loop noted below. Passing an explicit `--timeout 600+` is still the safe practice.
+
+> An **Android backend** (native gRPC + master-token auth) also shipped in 0.8.2 as an alternative to the Web/cookie backend for unattended or UI-drift-prone use. This skill stays on the default **Web backend**; the Android path is a future option, not the documented default here.
 
 ## Prerequisites
 

@@ -5,8 +5,9 @@
 ### Authentication
 ```bash
 notebooklm auth check                    # Quick local validation
-notebooklm auth check --test             # Full validation with network test
+notebooklm auth check --test --json      # Full validation with network test (0.8.x)
 ```
+Require `.status == "ok"` and `.checks.token_fetch == true`. Add `--passive` to keep the check strictly read-only. As of notebooklm-py 0.8.1 the default host is `https://notebook.google.com` (the retired `notebooklm.google.com` still resolves); ensure the CLI is `0.8.1+` (`notebooklm --version`) so requests hit the current host.
 
 ### Phase 1: Notebook Creation
 ```bash
@@ -52,6 +53,17 @@ notebooklm ask "Question" -s <source_id> -s <source_id> --save-as-note --noteboo
 notebooklm note list --notebook <ID>
 ```
 
+### Phase 3-4: Passage Search (triangulation aid — notebooklm-py 0.8.2+)
+`source search` returns ranked passages straight from the indexed sources, no chat turn spent. Use it to confirm a load-bearing claim actually appears in a *named* source before treating it as triangulated, and to locate which sources corroborate a claim.
+```bash
+# Does this claim appear in the corpus, and in which sources?
+notebooklm source search "the specific claim in plain terms" --limit 10 --json --notebook <ID>
+
+# Restrict the search to the sources you think support it (repeat -s)
+notebooklm source search "the claim" -s <source_id> -s <source_id> --json --notebook <ID>
+```
+Each result carries `source_id`, `text`, `rank` (lower = better), and the source-relative span. A single-source or zero-hit result is a triangulation red flag — do not mark the claim corroborated until distinct sources surface it. This does not replace saved-note Q&A; it verifies where a claim is grounded.
+
 ### Parallel Workflow Safety
 When running multiple agents against different notebooks, always use explicit `--notebook <ID>` flags. Never rely on `notebooklm use` in multi-agent contexts — it writes to a shared context file and agents will overwrite each other.
 
@@ -94,6 +106,8 @@ Do not retry `research wait --import-all` in a loop after a timeout — it will 
 ### ⚠️ Deep Research Import Duplication Bug
 
 `research wait --import-all` with short timeouts triggers a retry loop where each retry re-imports the full result set. A single query returning 71 sources can produce 378 sources (5.3x duplication) if 5 retries fire.
+
+> **0.8.1+ mitigation:** the deep-research CLI wait default was raised from 300s to 1,800s, so the short-timeout retry loop no longer fires by default. Passing an explicit `--timeout 600+` and the pre/post count check below remain the safe practice.
 
 **Root cause:** The CLI's retry mechanism does not track which sources were already imported. Each retry attempt imports the complete batch again.
 
