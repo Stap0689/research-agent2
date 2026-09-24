@@ -116,6 +116,35 @@ adversarial completeness critic must certify saturation. The final deliverable
 carries an **Accountability Record** — the trust signal that the protocol was
 followed.
 
+## Operational Notes (First Run)
+
+A few behaviors are worth knowing before your first session. None are defects in the
+skill; they are properties of the runtime it sits on.
+
+- **Do not interrupt while a witness or completeness critic is running.** The witness
+  and completeness critics are Claude Code subagents spawned via the Agent/Task tool.
+  Interrupting the parent turn tears down the in-flight subagent, so it returns no
+  verdict. Let each pass finish (you are notified on completion), then continue.
+- **Gemini Notebook cites factual-lookup questions well and analytical ones poorly.**
+  Falsification, premortem, and synthesis questions often return with no citation
+  markers. Do not treat an uncited analytical answer as grounded. Verify its
+  load-bearing claims against the corpus with `notebooklm source search "<claim>"`
+  before relying on them. A claim that surfaces in no source is inference, not a finding.
+- **Triangulate on the specific claim, not keyword overlap.** `source search`
+  co-occurrence is not corroboration. Read the snippet: a co-citing source may support
+  an adjacent general principle while the specific load-bearing claim is still
+  single-source. Confidence-cap single-source claims accordingly.
+- **A second deep-research pass in the same notebook needs `--task-id`.** If a prior
+  `source add-research` task is still in flight when you start another, `research wait`
+  becomes ambiguous ("N research tasks in flight"). Pass the specific `--task-id` /
+  `--run-id` reported by `source add-research` to import the one you want.
+- **The source audit reports tiers; it does not block.** `quality-gates/source-audit.py`
+  classifies each source (hard-reject, Tier 5, or a positive Tier 1-3 via `DOMAIN_TIER_MAP`)
+  and prints an effective Tier 1-3 count against the 15-source minimum in `SOURCE-QUALITY.md`.
+  If a legitimate authoritative domain (a standards body, a peer-reviewed venue, a
+  government or framework source) shows up as `unclassified`, add it to `DOMAIN_TIER_MAP`.
+  The count is advisory; nothing here blocks Q&A.
+
 ## When to Use This vs. v1
 
 Use **research-agent2** when the research is decision-informing, adversarial, or

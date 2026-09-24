@@ -12,10 +12,13 @@ Actions:
   1. Fetch source list via notebooklm source list --json --notebook <ID>
   2. Domain-match each source against hard-reject patterns (SOURCE-QUALITY.md)
   3. Domain-match against Tier 5 flag patterns
-  4. Check MARKDOWN sources for laundered hard-reject references (--check-markdown)
-  5. Delete hard-reject sources (unless --dry-run or --skip-delete)
-  6. Record per-source classification to notebook-index.json
-  7. Set source_audit.completed = true
+  4. Assign a positive credibility tier (1-3) to recognized authoritative domains
+     via DOMAIN_TIER_MAP / SUFFIX_TIER_MAP, so the >=15 Tier 1-3 corpus minimum the
+     methodology requires is actually measurable (reporting only -- NON-BLOCKING)
+  5. Check MARKDOWN sources for laundered hard-reject references (--check-markdown)
+  6. Delete hard-reject sources (unless --dry-run or --skip-delete)
+  7. Record per-source classification + tier distribution to notebook-index.json
+  8. Set source_audit.completed = true
 
 Hard-reject domains (no exceptions):
   Reddit, StackOverflow, StackExchange, GeeksforGeeks, Scribd, YouTube,
@@ -37,7 +40,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
-VERSION = "1.0"
+VERSION = "1.1"
 
 DEFAULT_INDEX_PATH = Path.home() / "research-agent" / "observability" / "notebook-index.json"
 
@@ -62,6 +65,44 @@ TIER5_FLAG_PATTERNS = [
     re.compile(r"(?:^|://)(?:www\.)?hackernoon\.com"),
     re.compile(r"(?:^|://)(?:www\.)?towardsdatascience\.com"),
     re.compile(r"(?:^|://)(?:www\.)?analyticsvidhya\.com"),
+]
+
+# Positive tier allowlist (SOURCE-QUALITY.md 5-tier hierarchy). A recognized host is
+# assigned Tier 1-3 so the audit can MEASURE the >=15 Tier 1-3 corpus minimum the
+# methodology requires. This is reporting only; nothing here blocks Q&A. Unrecognized
+# hosts that survive the reject/Tier-5 filters are accepted but tier=None ("unclassified")
+# and do NOT count toward the Tier 1-3 total. Matching is suffix-aware.
+DOMAIN_TIER_MAP: dict[str, int] = {
+    # Tier 1 -- flagship multidisciplinary / systematic-review venues
+    "nature.com": 1, "science.org": 1, "pnas.org": 1, "thelancet.com": 1,
+    "nejm.org": 1, "jamanetwork.com": 1, "cochranelibrary.com": 1, "cell.com": 1,
+    # Tier 2 -- peer-reviewed journals, major publishers, top CS/security venues, think tanks
+    "ieee.org": 2, "ieeexplore.ieee.org": 2, "acm.org": 2, "dl.acm.org": 2,
+    "springer.com": 2, "link.springer.com": 2, "sciencedirect.com": 2, "wiley.com": 2,
+    "onlinelibrary.wiley.com": 2, "tandfonline.com": 2, "cambridge.org": 2, "oup.com": 2,
+    "usenix.org": 2, "ndss-symposium.org": 2, "ieee-security.org": 2, "sigsac.org": 2,
+    "petsymposium.org": 2, "rand.org": 2, "nationalacademies.org": 2, "nap.edu": 2,
+    "neurips.cc": 2, "proceedings.neurips.cc": 2, "mlr.press": 2, "proceedings.mlr.press": 2,
+    "aclanthology.org": 2, "openreview.net": 2, "jmlr.org": 2, "aaai.org": 2,
+    # Tier 3 -- preprints, government, standards, frameworks, first-party platform docs
+    "arxiv.org": 3, "biorxiv.org": 3, "medrxiv.org": 3, "ssrn.com": 3,
+    "iso.org": 3, "ietf.org": 3, "rfc-editor.org": 3, "w3.org": 3,
+    "who.int": 3, "oecd.org": 3, "worldbank.org": 3, "europa.eu": 3, "enisa.europa.eu": 3,
+    "semanticscholar.org": 3, "distill.pub": 3,
+    # Tier 3 -- authoritative security threat-intel / TTP frameworks (gov-funded FFRDC,
+    # incident-response standards bodies). MITRE ATT&CK is the canonical adversary-TTP
+    # taxonomy; FIRST publishes CVSS and IR standards; CISA/NIST are US-gov standards.
+    "attack.mitre.org": 3, "mitre.org": 3, "first.org": 3, "cisa.gov": 3, "nist.gov": 3,
+    # Tier 3 -- first-party platform engineering docs (vendor-published but normative,
+    # no sales function)
+    "learn.microsoft.com": 3, "docs.microsoft.com": 3, "developer.apple.com": 3,
+    "kernel.org": 3, "docs.kernel.org": 3, "blackhat.com": 3,
+}
+
+# Structural suffix tiers (checked after the exact/suffix domain map). Government,
+# military, international-org, and academic TLDs are Tier 3 authoritative by institution.
+SUFFIX_TIER_MAP: list[tuple[str, int]] = [
+    (".gov", 3), (".mil", 3), (".int", 3), (".edu", 3),
 ]
 
 GENERIC_TITLE_RE = re.compile(
@@ -95,6 +136,25 @@ def is_hard_reject(url: str) -> bool:
 
 def is_tier5_flag(url: str) -> bool:
     return any(p.search(url) for p in TIER5_FLAG_PATTERNS)
+
+
+def classify_tier(url: str) -> int | None:
+    """Map a URL's host to a credibility tier (1-3) via the positive allowlist.
+
+    Suffix-aware exact/parent match against DOMAIN_TIER_MAP, then structural TLD
+    suffixes. Returns None for an unrecognized host -- accepted but not counted toward
+    the Tier 1-3 minimum (the gate enforces recognized quality, not merely 'not junk').
+    """
+    host = (extract_domain(url) or "").lower().lstrip(".")
+    if not host:
+        return None
+    for d, tier in DOMAIN_TIER_MAP.items():
+        if host == d or host.endswith("." + d):
+            return tier
+    for suffix, tier in SUFFIX_TIER_MAP:
+        if host.endswith(suffix):
+            return tier
+    return None
 
 
 def fetch_sources(notebook_id: str) -> list[dict]:
@@ -182,6 +242,11 @@ def classify_source(source: dict, notebook_id: str, check_markdown: bool = False
     elif url and is_tier5_flag(url):
         tier = 5
         flags.append("tier5_domain")
+    elif url:
+        # Accepted source: assign a positive tier if the host is recognized.
+        tier = classify_tier(url)
+        if tier is None:
+            flags.append("unclassified_domain")
     elif not url and source_type in ("MARKDOWN", "TEXT", "UNKNOWN"):
         flags.append("no_url")
         if check_markdown:
@@ -287,15 +352,22 @@ def run_audit(notebook_id: str, index_path: Path, dry_run: bool = False,
         for r in hard_rejects:
             print(f"  - {r['source_id']}: {r['title'][:60]} ({r['domain']})")
 
-    tier_dist = {"tier_1": 0, "tier_2": 0, "tier_3": 0, "tier_4": 0, "tier_5_excluded": 0}
+    tier_dist = {"tier_1": 0, "tier_2": 0, "tier_3": 0, "tier_4": 0,
+                 "tier_5_excluded": 0, "unclassified": 0}
     for r in per_source:
-        if r.get("tier") == 5 or r["decision"] in ("hard_reject", "hard_reject_deleted"):
+        if r["decision"] in ("hard_reject", "hard_reject_deleted") or r.get("tier") == 5:
             tier_dist["tier_5_excluded"] += 1
+        elif r.get("tier") in (1, 2, 3, 4):
+            tier_dist[f"tier_{r['tier']}"] += 1
+        else:
+            tier_dist["unclassified"] += 1
 
     md_flagged = sum(
         1 for r in per_source
         if "no_url" in r.get("flags", []) and any(f.startswith("references_") for f in r.get("flags", []))
     )
+
+    effective_tier_1_3 = tier_dist["tier_1"] + tier_dist["tier_2"] + tier_dist["tier_3"]
 
     audit_result = {
         "completed": True,
@@ -307,7 +379,8 @@ def run_audit(notebook_id: str, index_path: Path, dry_run: bool = False,
         "markdown_provenance_checked": check_markdown,
         "markdown_flagged": md_flagged,
         "tier_distribution": tier_dist,
-        "effective_tier_1_3": tier_dist["tier_1"] + tier_dist["tier_2"] + tier_dist["tier_3"],
+        "unclassified_count": tier_dist["unclassified"],
+        "effective_tier_1_3": effective_tier_1_3,
         "per_source": per_source,
     }
 
@@ -315,6 +388,15 @@ def run_audit(notebook_id: str, index_path: Path, dry_run: bool = False,
     print(f"  Total sources: {len(sources)}")
     print(f"  Hard rejects found: {len(hard_rejects)}")
     print(f"  Hard rejects deleted: {deleted_count}")
+    print(f"  Tier distribution: T1={tier_dist['tier_1']} T2={tier_dist['tier_2']} "
+          f"T3={tier_dist['tier_3']} T4={tier_dist['tier_4']} "
+          f"T5/rejected={tier_dist['tier_5_excluded']} unclassified={tier_dist['unclassified']}")
+    print(f"  Effective Tier 1-3 (counts toward the >=15 minimum): {effective_tier_1_3}  "
+          + ("PASS" if effective_tier_1_3 >= 15
+             else "below the 15 Tier 1-3 minimum in SOURCE-QUALITY.md (advisory, non-blocking)"))
+    if tier_dist["unclassified"]:
+        print(f"  Unclassified accepted domains (not counted): {tier_dist['unclassified']} "
+              f"-- if any are legitimate, add them to DOMAIN_TIER_MAP")
 
     if not dry_run:
         if update_notebook_index(notebook_id, audit_result, index_path):
