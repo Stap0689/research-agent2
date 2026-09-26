@@ -84,6 +84,10 @@ quality-gates/            Source-quality enforcement (shared with v1)
 
 ## Install
 
+The steps below are for macOS and Linux (or Windows via WSL). **On native Windows
+(PowerShell, no WSL), follow [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) instead** — the
+Python is cross-platform, but the install commands and hook wiring differ.
+
 ```bash
 export RESEARCH_AGENT_HOME=~/research-agent
 
